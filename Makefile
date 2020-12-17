@@ -6,7 +6,10 @@ K8S_NAMESPACE=observability
 
 .PHONY: install
 install: hack_k8s_connect
-	helm upgrade --install loki --create-namespace --namespace=$(K8S_NAMESPACE) --values=helm/values.yaml grafana/loki-stack
+	helm upgrade --install loki --create-namespace --namespace=$(K8S_NAMESPACE) --values=helm/loki-stack/values.yaml grafana/loki-stack
+	helm upgrade --install prometheus --create-namespace --namespace=$(K8S_NAMESPACE) prometheus-community/prometheus
+	helm upgrade --install jaegar --create-namespace --namespace=$(K8S_NAMESPACE) jaegertracing/jaeger-operator
+	kubectl apply -n $(K8S_NAMESPACE) -f ./k8s/jaegar/instance.yaml
 
 .PHONY: port_forward_grafana
 port_forward_grafana:
@@ -15,6 +18,9 @@ port_forward_grafana:
 .PHONY: hack_helm_add_repo
 hack_helm_add_repo:
 	helm repo add grafana https://grafana.github.io/helm-charts
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+	helm repo update
 
 # creates a K8s instance
 .PHONY: hack_k8s_new

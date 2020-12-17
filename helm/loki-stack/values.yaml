@@ -1,0 +1,48 @@
+
+grafana:
+  enabled: true
+  env:
+    # switch off authentication
+    GF_AUTH_ANONYMOUS_ENABLED: true
+    GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+  image:
+    tag: 7.3.3
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server
+        access: direct
+        isDefault: true
+      - name: Jaeger
+        type: jaeger
+        url: http://jaeger-query:16686
+        access: direct
+      - name: Loki
+        type: loki
+        access: direct
+        url: http://loki:3100
+        jsonData:
+          maxLines: 1000
+          derivedFields:
+            # Field with internal link pointing to data source in Grafana.
+            # Right now, Grafana supports only Jaeger and Zipkin data sources as link targets.
+            # datasourceUid value can be anything, but it should be unique across all defined data source uids.
+            - datasourceUid: my_jaeger_uid
+              matcherRegex: "traceID=(\\w+)"
+              name: TraceID
+              # url will be interpreted as query for the datasource
+              url: "$${__value.raw}"
+
+prometheus:
+  enabled: true
+
+prometheus:
+  alertmanager:
+    persistentVolume:
+      enabled: false
+  server:
+    persistentVolume:
+      enabled: false
