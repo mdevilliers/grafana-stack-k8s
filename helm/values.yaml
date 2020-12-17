@@ -1,0 +1,20 @@
+
+grafana:
+  enabled: true
+  env:
+    # switch off authentication
+    GF_AUTH_ANONYMOUS_ENABLED: true
+    GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+  image:
+    tag: 7.3.3
+
+prometheus:
+  enabled: true
+
+prometheus:
+  alertmanager:
+    persistentVolume:
+      enabled: false
+  server:
+    persistentVolume:
+      enabled: false
