@@ -20,10 +20,6 @@ hack_helm_add_repo:
 	helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
 	helm repo update
 
-.PHONY: hack_helm_list
-hack_helm_list:
-	helm list -A
-
 # creates a K8s instance
 .PHONY: hack_k8s_new
 hack_k8s_new:

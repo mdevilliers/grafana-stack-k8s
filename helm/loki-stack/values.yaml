@@ -43,9 +43,6 @@ grafana:
 
 prometheus:
   enabled: true
-
-prometheus:
-  enabled: true
   alertmanager:
     persistentVolume:
       enabled: false
