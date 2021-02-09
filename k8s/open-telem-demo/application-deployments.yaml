@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: otsql_db
+  POSTGRES_USER: otsql_user
+  POSTGRES_PASSWORD: otsql_password
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc-one-deployment
+  labels:
+    app: svc-one
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: svc-one
+  template:
+    metadata:
+      labels:
+        app: svc-one
+    spec:
+      containers:
+        - image: open-telem-demo/svc-one:latest
+          name: svc-one
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 9777
+              protocol: TCP
+          env:
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.observability.svc.cluster.local:14268/api/traces"
+            - name: RELOAD
+              value: "1"
+        - name: postgres
+          image: postgres:11.5
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-one
+  labels:
+    app: svc-one
+spec:
+  ports:
+  - port: 9777
+    protocol: TCP
+  selector:
+    app: svc-one
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-api-deployment
+  labels:
+    app: client-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-api
+  template:
+    metadata:
+      labels:
+        app: client-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8777"
+    spec:
+      containers:
+        - image: open-telem-demo/client-api:latest
+          name: client-api
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 8777
+              protocol: TCP
+              name: web
+          env:
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.observability.svc.cluster.local:14268/api/traces"
+            - name: SVC_HOST
+              value: "svc-one"
+            - name: RELOAD
+              value: "1"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: client-api-service-monitor
+spec:
+  namespaceSelector:
+    matchNames:
+      - demo
+  selector:
+    matchLabels:
+      app: client-api
+  endpoints:
+  - port: web           # works for different port numbers as long as the name matches
+    interval: 10s        # scrape the endpoint every 10 seconds
